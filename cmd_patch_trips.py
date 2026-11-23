@@ -4,6 +4,15 @@
 The command answers from TeslaMate's Postgres (recent drives +
 totals) and never touches Tesla — no token use, no car wake.
 Run on the server as ubuntu. Backs up first; restores on failure.
+
+APPLIED on the server 2026-11-24 with one additional hand fix that
+this script does NOT make: do_POST carries a command gate that only
+released "state" as a special command; it was extended by hand to
+also release "trips" (server backup cmd_server.py.bak-gate). If this
+script is ever re-applied to a pristine cmd_server.py, that gate
+line must be extended the same way or trips returns
+400 "unknown command". The psql-output parse fix found in the same
+round (join all output lines before json.loads) IS included below.
 """
 import py_compile
 import shutil
@@ -52,7 +61,7 @@ def _trips():
         lines = [ln for ln in (proc.stdout or "").splitlines() if ln.strip()]
         if proc.returncode != 0 or not lines:
             return False, 502, {"error": "trips unavailable"}
-        return True, 200, {"response": json.loads(lines[-1])}
+        return True, 200, {"response": json.loads("".join(lines))}
     except Exception:
         return False, 502, {"error": "trips unavailable"}
 
